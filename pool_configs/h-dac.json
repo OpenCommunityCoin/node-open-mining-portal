@@ -2,21 +2,21 @@
     "enabled": true,
     "coin": "hdac.json",
 
-    "address": "HBblahblahblahblahblahblahblahblah",
+    "address": "HBSREYHSZUoLELycQcpGTFnwYPcbvfeywx",
 
     "rewardRecipients": {
-        "HBblahblahblahblahblahblahblahblah": 1
+        "HBSREYHSZUoLELycQcpGTFnwYPcbvfeywx": 1
     },
 
     "paymentProcessing": {
-        "enabled": true,
+        "enabled": false,
         "paymentInterval": 20,
         "minimumPayment": 70,
         "daemon": {
             "host": "127.0.0.1",
             "port": "8822",
-            "user": "rpcuser",
-            "password": "rpcpass"
+            "user": "bab",
+            "password": "foobar123"
         }
     },
 
@@ -43,15 +43,15 @@
         {
             "host": "127.0.0.1",
             "port": "8822",
-            "user": "rpcuser",
-            "password": "rpcpass"
+            "user": "bab",
+            "password": "foobar123"
         }
     ],
 
     "p2p": {
         "enabled": false,
         "host": "127.0.0.1",
-        "port": 8822,
+        "port": 19333,
         "disableTransactions": true
     },
 
