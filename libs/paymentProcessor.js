@@ -76,8 +76,8 @@ function SetupForPool(logger, poolOptions, setupFinished){
                 else if (!result.response || !result.response.ismine) {
                             daemon.cmd('getaddressinfo', [poolOptions.address], function(result) {
                         if (result.error){
-                            logger.error(logSystem, logComponent, 'Error with payment processing daemon, getaddressinfo failed ... ' + JSON.stringify(result.error));
-                            callback(true);
+                            logger.error(logSystem, logComponent, 'Warn: payment processing daemon, getaddressinfo failed ... ' + JSON.stringify(result.error));
+                            callback(); // ignore
                         }
                         else if (!result.response || !result.response.ismine) {
                             logger.error(logSystem, logComponent,
