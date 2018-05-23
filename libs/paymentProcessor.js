@@ -205,6 +205,54 @@ function SetupForPool(logger, poolOptions, setupFinished){
                     callback(null, workers, rounds);
                 });
             },
+            function(workers, rounds, callback) {
+                // fix possible block height off by one error.
+                var batchRPCcommand = rounds.map(function(r) {
+                    return ['getblock', [r.blockHash]];
+                });
+
+                startRPCTimer();
+                daemon.batchCmd(batchRPCcommand, function(error, results) {
+                    endRPCTimer();
+
+                    if (error || !results) {
+                        logger.error(logSystem, logComponent, 'Check finished - daemon rpc error with batch getblock '
+                            + JSON.stringify(error));
+                        callback(true);
+                        return;
+                    }
+
+                    var validRounds = [];
+                    results.forEach(function(b, i) {
+                        var round = rounds[i];
+
+                        if (!b.result && b.error.code) {
+                            logger.error(logSystem, logComponent, b.error.message + ':' + round.blockHash + ": number = " + round.height);
+                            return;
+                        }
+
+                        if (b.result.confirmations < -1) {
+                            logger.error(logSystem, logComponent, 'WARN : Orphan block found : height = ' + round.height);
+                            round.category = 'orphan';
+                            return;
+                        }
+                        if (b.result.confirmations < 100) {
+                            return;
+                        }
+
+                        logger.debug(logSystem, logComponent, 'block #' + round.height + ' confirmation = ' + b.result.confirmations);
+                        if (b.result.height != round.height) {
+                            logger.debug(logSystem, logComponent, 'block has different height!: ' + round.height + "(pool) != " + b.result.height + "(block)");
+                            // fix possible block height off by one mismatch.
+                            round.height = b.result.height;
+                        }
+
+                        validRounds.push(round);
+                    });
+                    callback(null, workers, validRounds);
+                    return;
+                });
+            },
 
             /* Does a batch rpc call to daemon with all the transaction hashes to see if they are confirmed yet.
                It also adds the block reward amount to the round object - which the daemon gives also gives us. */
@@ -238,24 +286,19 @@ function SetupForPool(logger, poolOptions, setupFinished){
 
                         var round = rounds[i];
 
-                        if (tx.error && tx.error.code === -5){
-                            logger.warning(logSystem, logComponent, 'Daemon reports invalid transaction: ' + round.txHash);
-                            round.category = 'kicked';
-                            return;
-                        }
-                        else if (tx.error || !tx.result){
+                        if (tx.error || !tx.result){
                             logger.error(logSystem, logComponent, 'Odd error with gettransaction ' + round.txHash + ' '
                                 + JSON.stringify(tx));
                             return;
                         }
                         else if (!tx.result.details || (tx.result.details && tx.result.details.length === 0)) {
                             logger.warning(logSystem, logComponent, 'Daemon reports no details for transaction: ' + round.txHash);
-                            round.category = 'kicked';
+                            //round.category = 'kicked';
                             return;
                         }
 
                         var generationTx = tx.result.details.filter(function(tx){
-                            return tx.address === poolOptions.address;
+                            return tx.address === poolOptions.address || (poolOptions.walletAddresses.indexOf(tx.address) > -1);
                         })[0];
 
 
@@ -323,7 +366,7 @@ function SetupForPool(logger, poolOptions, setupFinished){
                 redisClient.multi(shareLookups).exec(function(error, allWorkerShares){
                     endRedisTimer();
 
-                    if (error){
+                    if (error || !allWorkerShares){
                         callback('Check finished - redis error with multi get rounds share');
                         return;
                     }
@@ -332,6 +375,9 @@ function SetupForPool(logger, poolOptions, setupFinished){
                     // This snippet will parse all workers and merge different workers into 1 payout address
                     allWorkerShares = allWorkerShares.map((roundShare) => {
                         let resultForRound = {};
+                        if (roundShare === null) {
+                            return;
+                        }
 
                         Object.keys(roundShare).forEach((workerStr) => {
                             //test workername is not null (those may be if miner mine on stratum without user and worker)
