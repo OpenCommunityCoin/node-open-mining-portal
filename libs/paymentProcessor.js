@@ -197,6 +197,11 @@ function SetupForPool(logger, poolOptions, setupFinished){
                         };
                     });
 
+                    /* sort rounds by block height to pay in order */
+                    rounds.sort(function(a, b) {
+                        return a.height - b.height;
+                    });
+
                     callback(null, workers, rounds);
                 });
             },
