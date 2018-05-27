@@ -179,8 +179,6 @@ var buildPoolConfigs = function(){
 
 var startWebsite = function(){
 
-    if (!portalConfig.website.enabled) return;
-
     var worker = cluster.fork({
         workerType: 'website',
         pools: JSON.stringify(poolConfigs),
