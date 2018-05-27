@@ -123,6 +123,82 @@ module.exports = function(logger){
 
     setInterval(buildUpdatedWebsite, websiteConfig.stats.updateInterval * 1000);
 
+    var updateNetworkHashrate = function() {
+        async.waterfall([
+            function(callback){
+                var client = redis.createClient(portalConfig.redis.port, portalConfig.redis.host);
+                client.hgetall('coinVersionBytes', function(err, coinBytes) {
+                    if (err){
+                        client.quit();
+                        return callback('Failed grabbing coin version bytes from redis ' + JSON.stringify(err));
+                    }
+                    callback(null, client, coinBytes || {});
+                });
+            },
+            function (client, coinBytes, callback) {
+                var enabledCoins = Object.keys(poolConfigs).map(function(c){return c.toLowerCase()});
+                var validCoins = [];
+                enabledCoins.forEach(function(c){
+                    if (c in coinBytes)
+                        validCoins.push(c);
+                });
+                callback(null, client, coinBytes, validCoins);
+            },
+            function(client, coinBytes, validCoins, callback){
+                var coinsForRedis = {};
+                async.each(validCoins, function(c, cback) {
+                    var coinInfo = (function() {
+                        for (var pName in poolConfigs){
+                            if (pName.toLowerCase() === c)
+                                return {
+                                    daemon: poolConfigs[pName].daemons[0]
+                                }
+                        }
+                    })();
+
+                    var daemon = new Stratum.daemon.interface([coinInfo.daemon], function(severity, message){
+                        logger[severity](logSystem, c, message);
+                    });
+                    daemon.cmd('getmininginfo', [], function(result) {
+                        if (result[0].error) {
+                            logger.error(logSystem, c, 'Could not getmininginfo for ' + c + ' ' + JSON.stringify(result[0].error));
+                            cback();
+                            return;
+                        }
+
+                        coinsForRedis[c] = result[0].response;
+                        cback();
+                    });
+                }, function(err) {
+                    callback(null, client, coinBytes, coinsForRedis);
+                });
+            },
+            function(client, coinBytes, coinsForRedis, callback) {
+                // save nethashrate
+                if (Object.keys(coinsForRedis).length > 0) {
+                    var dateNow = Date.now();
+
+                    Object.keys(coinsForRedis).map(function(c) {
+                        var coinData = coinsForRedis[c];
+                        var hashrateData = [ coinData.difficulty, coinData.networkhashps, coinData.currentblocktx, dateNow];
+                        client.zadd(c + ':nethashrate', dateNow / 1000 | 0, hashrateData.join(':'));
+                    });
+                    client.quit();
+                } else {
+                    client.quit();
+                }
+                callback(null, coinBytes);
+            }
+        ], function(err, coinBytes) {
+            if (err) {
+                logger.error(logSystem, 'Init', err);
+                return;
+            }
+        });
+    };
+
+    updateNetworkHashrate();
+    setInterval(updateNetworkHashrate, websiteConfig.stats.updateInterval * 1000);
 
     var buildKeyScriptPage = function(){
         async.waterfall([
