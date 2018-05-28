@@ -139,9 +139,23 @@ module.exports = function(logger, portalConfig, poolConfigs){
                 else{
                     for(var i = 0; i < replies.length; i += commandsPerCoin){
                         var coinName = client.coins[i / commandsPerCoin | 0];
+                        var paymentProcessing = poolConfigs[coinName].paymentProcessing;
+                        // sum total fee
+                        var totalFee = 0;
+                        if (poolConfigs[coinName].rewardRecipients) {
+                            Object.keys(poolConfigs[coinName].rewardRecipients).forEach(function(address) {
+                                totalFee += poolConfigs[coinName].rewardRecipients[address];
+                            });
+                        }
+                        delete paymentProcessing.daemon;
+                        delete paymentProcessing.enabled;
                         var coinStats = {
                             name: coinName,
                             symbol: poolConfigs[coinName].coin.symbol.toUpperCase(),
+                            address: poolConfigs[coinName].address,
+                            rewardRecipients: poolConfigs[coinName].rewardRecipients,
+                            poolFee: totalFee,
+                            paymentProcessing: paymentProcessing,
                             algorithm: poolConfigs[coinName].coin.algorithm,
                             hashrates: replies[i + 1],
                             nethashrates: replies[i + 7],
