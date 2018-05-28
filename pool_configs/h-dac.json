@@ -1,0 +1,78 @@
+{
+    "enabled": true,
+    "coin": "hdac.json",
+
+    "address": "HBSREYHSZUoLELycQcpGTFnwYPcbvfeywx",
+
+    "rewardRecipients": {
+        "HBSREYHSZUoLELycQcpGTFnwYPcbvfeywx": 1
+    },
+
+    "paymentProcessing": {
+        "enabled": false,
+        "paymentInterval": 20,
+        "minimumPayment": 70,
+        "daemon": {
+            "host": "127.0.0.1",
+            "port": "8822",
+            "user": "bab",
+            "password": "foobar123"
+        }
+    },
+
+    "ports": {
+        "3008": {
+            "diff": 32.00000
+        },
+        "3333": {
+            "diff": 64.00000,
+            "varDiff": {
+                "minDiff": 64.00000,
+                "maxDiff": 256,
+                "targetTime": 15,
+                "retargetTime": 90,
+                "variancePercent": 30
+            }
+        },
+        "3256": {
+            "diff": 128
+        }
+    },
+
+    "daemons": [
+        {
+            "host": "127.0.0.1",
+            "port": "8822",
+            "user": "bab",
+            "password": "foobar123"
+        }
+    ],
+
+    "p2p": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "port": 19333,
+        "disableTransactions": true
+    },
+
+    "mposMode": {
+        "enabled": false,
+        "host": "set your mysql host",
+        "port": 3306,
+        "user": "set your mysql user id",
+        "password": "set your mysql password",
+        "database": "mpos",
+        "checkPassword": true,
+        "autoCreateWorker": false
+    },
+
+    "mongoMode": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "user": "",
+        "pass": "",
+        "database": "hdac",
+        "authMechanism": "DEFAULT"
+    }
+
+}

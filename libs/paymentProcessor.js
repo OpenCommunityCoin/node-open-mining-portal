@@ -75,9 +75,23 @@ function SetupForPool(logger, poolOptions, setupFinished) {
                 }
                 else if (!result.response || !result.response.ismine) {
                     logger.error(logSystem, logComponent,
-                        'Daemon does not own pool address - payment processing can not be done with this daemon, '
+                            'Validateaddress failed, trying for newer getaddressinfo Command ..., '
                         + JSON.stringify(result.response));
-                    callback(true);
+                            daemon.cmd('getaddressinfo', [poolOptions.address], function(result) {
+                        if (result.error){
+                            logger.error(logSystem, logComponent, 'Error with payment processing daemon, getaddressinfo failed ... ' + JSON.stringify(result.error));
+                            callback(true);
+                        }
+                        else if (!result.response || !result.response.ismine) {
+                            logger.error(logSystem, logComponent,
+                                    'Daemon does not own pool address - payment processing can not be done with this daemon, '
+                                    + JSON.stringify(result.response));
+                            callback(true);
+                        }
+                        else{
+                            callback()
+                        }
+                    }, true);
                 }
                 else {
                     callback()
@@ -234,14 +248,14 @@ function SetupForPool(logger, poolOptions, setupFinished) {
                             round.category = 'kicked';
                             return;
                         }
-                        else if (!tx.result.details || (tx.result.details && tx.result.details.length === 0)) {
-                            logger.warning(logSystem, logComponent, 'Daemon reports no details for transaction: ' + round.txHash);
-                            round.category = 'kicked';
-                            return;
-                        }
                         else if (tx.error || !tx.result) {
                             logger.error(logSystem, logComponent, 'Odd error with gettransaction ' + round.txHash + ' '
                                 + JSON.stringify(tx));
+                            return;
+                        }
+                        else if (!tx.result.details || (tx.result.details && tx.result.details.length === 0)) {
+                            logger.warning(logSystem, logComponent, 'Daemon reports no details for transaction: ' + round.txHash);
+                            round.category = 'kicked';
                             return;
                         }
 
